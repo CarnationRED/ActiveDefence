@@ -4,7 +4,7 @@
 3. Press ***O*** to create a debugging target (click ***RMB*** to let it run to cursor)  
 4. Press ***9/0*** to switch targets   
 5. Switch between turrets using the UI panel to control one single turret
-6. Hold ***Right Alt*** to set/enable on all turrets simultaneously 
+6. Hold ***Right Alt*** to set/toggole on all turrets simultaneously 
 　  
   
 ## TODO:  
