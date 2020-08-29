@@ -1,10 +1,12 @@
 ﻿using Assets.Game.Weapons;
 using Jundroo.SimplePlanes.ModTools.Interfaces.Parts.Modifiers;
+using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace CarnationRED.ActiveDefence
 {
-    public struct CannonInfo : IWeaponEnhanced
+    public class CannonInfo : IWeaponEnhanced
     {
         IModifierScript script;
         float fireDelayCached;
@@ -30,6 +32,18 @@ namespace CarnationRED.ActiveDefence
 
         public bool Gravity => true;
 
+        public float MaxRange => Mathf.Infinity;
+
+        public float LastFireTime
+        {
+            get => lastFireTime; set
+            {
+                lastFireTime = value;
+            }
+        }
+
+        public string Name => "Cannon";
+
         public CannonInfo(IModifierScript script)
         {
             this.script = script;
@@ -51,18 +65,25 @@ namespace CarnationRED.ActiveDefence
 
         public void Fire()
         {
-            if (Time.time - lastFireTime > fireDelay)
+            if (Time.time - LastFireTime > fireDelay)
             {
                 var cs = Reflections.CannonScript;
                 if ((bool)cs.InvokeMethod("get_CanFire", script, null))
                 {
-                    lastFireTime = Time.time;
+                    LastFireTime = Time.time;
                     cs.InvokeMethod("Fire", script, null);
                     ps.Play();
                     audio.pitch = Time.timeScale;
                     audio.Play();
                 }
             }
+        }
+
+        internal struct Comparer : IEqualityComparer<CannonInfo>
+        {
+            public bool Equals(CannonInfo x, CannonInfo y) => x.script == y.script;
+
+            public int GetHashCode(CannonInfo obj) => obj.script.GetHashCode();
         }
     }
 }

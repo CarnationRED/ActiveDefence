@@ -31,6 +31,7 @@ using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
 using System;
+using System.Linq;
 
 public class Fts
 {
@@ -431,7 +432,25 @@ public class Fts
         if (IsZero(G))
         {
             numTimes = SolveQuadric(c2, c3, c4, out times[0], out times[1]);
-            Array.Resize<double>(ref times, 2);
+            Array.Resize(ref times, 2);
+        }
+        else if (IsZero(P) && IsZero(Q) && IsZero(R))
+        {
+            numTimes = SolveQuadric(c0, c2, c4, out times[0], out times[1]);
+            var maxSqr = Math.Max(times[0], times[1]);
+            var minSqr = Math.Min(times[0], times[1]);
+            if (maxSqr >= 0)
+            {
+                numTimes = 2;
+                   times[0] = Math.Sqrt(maxSqr);
+                times[1] = -times[0];
+            }
+            if (minSqr >= 0)
+            {
+                numTimes = 4;
+                times[2] = Math.Sqrt(minSqr);
+                times[3] = -times[2];
+            }
         }
         else
             numTimes = SolveQuartic(c0, c1, c2, c3, c4, out times[0], out times[1], out times[2], out times[3]);
@@ -596,5 +615,10 @@ public class Fts
         fire_velocity.y = -(3 * a - 4 * b + c) / t;
 
         return true;
+    }
+
+    internal static int solve_ballistic_arc(Vector3 proj_pos, float proj_speed, Vector3 target_pos, Vector3 target_velocity, float gravity, out object s0, out Vector3 s1)
+    {
+        throw new NotImplementedException();
     }
 }

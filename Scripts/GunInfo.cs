@@ -1,4 +1,5 @@
 ﻿using Jundroo.SimplePlanes.ModTools.Interfaces.Parts.Modifiers;
+using System;
 using UnityEngine;
 
 namespace CarnationRED.ActiveDefence
@@ -9,6 +10,7 @@ namespace CarnationRED.ActiveDefence
         float fireDelayCached;
         float fireDelay;
         float velocity;
+        float maxRange;
         Transform muzzle;
         float gun_MinTimeBetweenRounds;
         float gun_TimeBetweenBursts;
@@ -31,6 +33,10 @@ namespace CarnationRED.ActiveDefence
 
         public bool Gravity => false;
 
+        public float MaxRange => maxRange;
+
+        public string Name => "Gun";
+
         public GunInfo(IModifierScript script)
         {
             this.script = script;
@@ -41,15 +47,8 @@ namespace CarnationRED.ActiveDefence
 
             muzzle = (Transform)Reflections.GunScript.GetField("_bulletStartPoint", script);
             fireDelay = fireDelayCached = (float)Reflections.GunScript.InvokeMethod("get_FireDelay", script, null);
-            velocity = fireDelayCached = (float)Reflections.Gun.InvokeMethod("get_MuzzleVelocity", Reflections.GunScript.InvokeMethod("get_Gun", script, null), null);
-            if (muzzle == null)
-            {
-                Debug.LogError("script == null");
-                foreach (var item in Reflections.GunScript.fields)
-                {
-                    Debug.LogError("GunScript "+item.Value.Name);
-                } 
-            }
+            velocity = fireDelayCached = (float)Reflections.Gun.InvokeMethod("get_MuzzleVelocity", gun, null);
+            maxRange = velocity * (float)Reflections.Gun.InvokeMethod("get_Lifetime", gun, null);
         }
         public bool Equals(IWeaponEnhanced other)
         {
@@ -92,6 +91,12 @@ namespace CarnationRED.ActiveDefence
                     }
                 }
             }
+        }
+        internal struct Comparer : System.Collections.Generic.IEqualityComparer<GunInfo>
+        {
+            public bool Equals(GunInfo x, GunInfo y) => x.script == y.script;
+
+            public int GetHashCode(GunInfo obj) => obj.script.GetHashCode();
         }
     }
 }

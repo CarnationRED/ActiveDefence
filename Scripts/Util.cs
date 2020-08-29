@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Jundroo.SimplePlanes.ModTools;
+using System;
 using UnityEngine;
 
 namespace CarnationRED.ActiveDefence
@@ -21,7 +22,7 @@ namespace CarnationRED.ActiveDefence
         }
         public static float Angle360To180(float angle) => ((angle + 180) % 360) - 180;
         public static Vector3 Angle360To180(Vector3 eular) => new Vector3(Angle360To180(eular.x), Angle360To180(eular.y), Angle360To180(eular.z));
-        
+
         /// <summary>
         /// 
         /// </summary>
@@ -37,6 +38,37 @@ namespace CarnationRED.ActiveDefence
             var a2 = second.AngleAroundAxisTo(axis, f);
             var a3 = third.AngleAroundAxisTo(axis, f);
             return (a2 >= a1 && a3 >= a2) ? 1 : ((a2 <= a1 && a3 <= a2) ? -1 : 0);
+        }
+        static object cameraManagerScript;
+        public static object CameraManagerScript
+        {
+            get
+            {
+                if (cameraManagerScript == null)
+                {
+                    cameraManagerScript = Reflections.CameraManagerScript.InvokeMethod("get_Instance", null, null);
+                }
+                return cameraManagerScript;
+            }
+        }
+        static IGameWorld gameWorld;
+        public static IGameWorld GameWorld
+        {
+            get
+            {
+                if (gameWorld == null)
+                    gameWorld = (IGameWorld)Reflections.GameWorld.InvokeMethod("get_Instance", null, null);
+                return gameWorld;
+            }set => gameWorld = value;
+        }
+        public static Rect BoundsToScreenRect(this Bounds bounds)
+        {
+            // Get mesh origin and farthest extent (this works best with simple convex meshes)
+            Vector3 origin = Camera.main.WorldToScreenPoint(new Vector3(bounds.min.x, bounds.max.y, 0f));
+            Vector3 extent = Camera.main.WorldToScreenPoint(new Vector3(bounds.max.x, bounds.min.y, 0f));
+
+            // Create rect in screen space and return - does not account for camera perspective
+            return new Rect(origin.x, Screen.height - origin.y, extent.x - origin.x, origin.y - extent.y);
         }
     }
 }

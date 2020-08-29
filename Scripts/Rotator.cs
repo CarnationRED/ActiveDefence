@@ -13,30 +13,16 @@ namespace CarnationRED.ActiveDefence
         private ConfigurableJoint _joint;
         private Rigidbody _rigidBody;
         private Rigidbody _connectedRigidBody;
-        private float _speed;
-        private bool _floppyJoint;
         public Transform _movingPart;
         public Transform _invertMovingPart;
-        private bool _freeSpin;
+        public Vector3 meshAxis;
         private IPartScript PartScript;
 
         private int AttachPointIndex = 0;
 
-        private Vector3 HingeOffset;
-        private float MaxSpeed = 50;
-        private float Speed = 50;
         private float _damperMultiplier = 500;
-        private bool AllowFreeSpin = false;
-        private float Range = 180f;
-        private bool DisableBaseMesh = false;
         private float _angle;
         private float _targetAngle;
-        private float _timeAngle;
-        private float _velAngle;
-        private float _lastVelAngle;
-        private float _lastAngle;
-        private float _lastLastAngle;
-        public float _accAngle;
         private bool invert = true;
         private float initialDamper;
 
@@ -66,12 +52,7 @@ namespace CarnationRED.ActiveDefence
             }
         }
 
-        //public AudioSource _audio;
-
-        private void Start()
-        {
-            enabled = false;
-        }
+        private void Start() => enabled = false;
 
         public bool Init(IPartScript ps, int AttachPointIndex, Transform movingPart, Transform invertMovingPart = null)
         {
@@ -83,6 +64,7 @@ namespace CarnationRED.ActiveDefence
         }
 
         public void SetAxis(Vector3 axis) => _joint.axis = axis;
+        public void SetMeshAxis(Vector3 axis) => meshAxis = axis;
 
         private bool SetupJoint()
         {
@@ -111,7 +93,6 @@ namespace CarnationRED.ActiveDefence
                                     _joint = obj1;
                                     _rigidBody = _joint.GetComponent<Rigidbody>();
                                     _connectedRigidBody = _joint.connectedBody;
-                                    _joint.anchor += HingeOffset;
                                 }
                             }
                         }
@@ -134,7 +115,6 @@ namespace CarnationRED.ActiveDefence
                                         _joint = obj1;
                                         _rigidBody = _joint.GetComponent<Rigidbody>();
                                         _connectedRigidBody = _joint.connectedBody;
-                                        _joint.anchor += HingeOffset;
                                     }
                                 }
                             }
@@ -142,80 +122,34 @@ namespace CarnationRED.ActiveDefence
                     }
                 }
             }
-            _speed = Speed * Speed * MaxSpeed;
             if (_joint != null)
             {
                 JointDrive angularXDrive = _joint.angularXDrive;
                 initialDamper = angularXDrive.positionDamper;
                 angularXDrive.positionDamper *= DamperMultiplier;
                 _joint.angularXDrive = angularXDrive;
-                if (Range < 0.0001f && AllowFreeSpin)
-                {
-                    _freeSpin = true;
-                    angularXDrive.positionDamper = 0f;
-                    angularXDrive.positionSpring = 0f;
-                    _joint.angularXDrive = angularXDrive;
-                }
-                else if (Speed < 0.0001f)
-                {
-                    _floppyJoint = true;
-                    angularXDrive.positionDamper = 0f;
-                    angularXDrive.positionSpring = 0f;
-                    _joint.angularXDrive = angularXDrive;
-                    _joint.angularXMotion = ConfigurableJointMotion.Limited;
-                    SoftJointLimit lowAngularXLimit = _joint.lowAngularXLimit;
-                    lowAngularXLimit.limit = -Range;
-                    _joint.lowAngularXLimit = lowAngularXLimit;
-                    lowAngularXLimit.limit = Range;
-                    _joint.highAngularXLimit = lowAngularXLimit;
-                }
-                if (_floppyJoint && _movingPart != null)
+                if (_movingPart != null)
                 {
                     _movingPart.parent = _joint.connectedBody.transform;
                 }
             }
             else return false;
-            if (Speed < 0.0001f || DisableBaseMesh)
-            {
-                EnableBaseMesh(false);
-            }
             return true;
         }
 
         private void FixedUpdate()
         {
-            if (_joint != null && ActiveDefenceTurretScript.gameRunning && !_freeSpin && !_floppyJoint)
+            if (_joint != null && ActiveDefenceTurretScript.gameRunning)
             {
                 var delta = Mathf.DeltaAngle(_angle, TargetAngle);
                 if (delta != 0f)
                 {
-                    float action = delta / Mathf.Abs(delta) * _speed * Time.deltaTime;
+                    float action = delta / Mathf.Abs(delta) * 100 * Time.deltaTime;
                     if (Mathf.Abs(action) > Mathf.Abs(delta))
                         action = delta;
                     if (!float.IsNaN(action))
                         _angle += action;
                 }
-                //{
-                //    var t = Time.fixedTime;
-                //    var tt = (t - _timeAngle);
-                //    _timeAngle = t;
-                //    var dt = 1f / tt;
-                //    _velAngle = (_angle - _lastAngle) * dt;
-                //    _accAngle = (_velAngle - _lastVelAngle) * dt;
-                //    if (Math.Abs(_accAngle) > 6400 && Math.Abs(_velAngle) > 50f)
-                //    {
-                //        _accAngle = Mathf.Clamp(_accAngle, -6400, 6400);
-                //        var newV = _lastVelAngle + _accAngle * tt;
-                //        _angle = (float)(_lastAngle + newV * tt);
-                //        _angle = (float)(_lastAngle + (_lastVelAngle * .8f + _velAngle * .1f) * tt * 0.5f);
-                //        _velAngle = (_angle - _lastAngle) * dt;
-
-                //        double Clamp(double v, double min, double max) => v > max ? max : (v < min ? min : v);
-                //    }
-                //    _lastVelAngle = _velAngle;
-                //    _lastAngle = _angle;
-                //    _lastLastAngle = _lastAngle;
-                //}
 
 
                 _joint.targetRotation = Quaternion.Euler(invert ? -_angle : _angle, 0f, 0f);
@@ -227,43 +161,19 @@ namespace CarnationRED.ActiveDefence
         }
         private void Update()
         {
-            if (!ServiceProvider.Instance. GameState.IsPaused)
-            {
+#if ABC
+            if (!GameState.Instance.IsPaused)
+#else
+            if (!ServiceProvider.Instance.GameState.IsPaused)
+#endif
                 if (_joint != null)
                 {
-                    /*float num = Mathf.Abs(_targetAngle - _angle);
-                    num = Mathf.Clamp(num, 0f, 0.5f);
-                    float num2 = Mathf.Max(_audio.volume, num);
-                    num2 -= Time.deltaTime * 3f;
-                    num2 = Mathf.Clamp(num2, 0f, 1f);
-                    _audio.volume = num2;
-                    if (_audio.volume > 0.1f && !_audio.isPlaying)
-                        _audio.Play();*/
-                    if (!_floppyJoint)
-                    {
-                        if (_movingPart != null)
-                            _movingPart.localRotation = Quaternion.AngleAxis(_angle, _joint.axis);
-                        if (_invertMovingPart != null)
-                            _invertMovingPart.localRotation = Quaternion.AngleAxis(180f - _angle, _joint.axis);
-                    }
+                    if (_movingPart != null)
+                        _movingPart.localRotation = Quaternion.AngleAxis(_angle, meshAxis);
+                    if (_invertMovingPart != null)
+                        _invertMovingPart.localRotation = Quaternion.AngleAxis(-_angle, meshAxis);
                 }
-                /*else if (_audio.isPlaying)
-                    _audio.Stop();*/
-            }
-            if (ServiceProvider.Instance.GameState.IsInDesigner && !ServiceProvider.Instance.GameState.IsInLevel)
-            {
-                if (Speed < 0.0001f || DisableBaseMesh)
-                {
-                    EnableBaseMesh(false);
-                    return;
-                }
-                EnableBaseMesh(true);
-            }
         }
 
-
-        private void EnableBaseMesh(bool v)
-        {
-        }
     }
 }

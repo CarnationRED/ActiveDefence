@@ -12,6 +12,9 @@ namespace CarnationRED.ActiveDefence
         Transform Muzzle { get; }
         bool IsArmed { get; }
         bool Gravity { get; }
+        float MaxRange { get; }
+        string Name { get; }
+
         void Fire();
         bool Equals(IWeaponEnhanced other);
     }
